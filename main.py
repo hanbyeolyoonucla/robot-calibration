@@ -6,9 +6,11 @@
 import roboticstoolbox as rtb
 from spatialmath import SE3
 
+import Meca
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    robot = rtb.models.Panda()
+    robot = Meca.Meca()
     print(robot)
 
     Te = robot.fkine(robot.qr)  # forward kinematics
@@ -21,10 +23,10 @@ if __name__ == '__main__':
     q_pickup = sol[0]
     print(robot.fkine(q_pickup))  # FK shows that desired end-effector pose was achieved
 
-    qt = rtb.jtraj(robot.qr, q_pickup, 50)
-    # robot.plot(qt.q, backend='pyplot', movie='panda1.gif')
+    qt = rtb.jtraj(robot.qr, robot.qz, 50)
+    robot.plot(qt.q, backend='pyplot', block=True)
 
-    robot.plot(qt.q)
+    # robot.plot(qt.q)
 
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
