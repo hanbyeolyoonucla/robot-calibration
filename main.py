@@ -31,7 +31,6 @@ def filter (nmdh, cmdh, T_base, T_tool, trajectory, q0):
         q = crobot.ik_lm_chan(Te, q0=q_init)[0]
         q = q + [0, 0, 0, 0, 0, 2*pi]
         q_filt.append(q)
-        # q_init = q
 
         T = nrobot.fkine(q)
         T = np.array(T)
@@ -42,7 +41,7 @@ def filter (nmdh, cmdh, T_base, T_tool, trajectory, q0):
         traj[3:6] = np.flip(traj[3:6]*180/pi)
         traj_filt.append(traj)
 
-    # nrobot.plot(np.array(q_filt),backend='pyplot')
+        # nrobot.plot(np.array(q_filt),backend='pyplot')
 
     return np.array(T_filt), np.array(traj_filt), np.array(q_filt)
 
