@@ -89,7 +89,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(projection='3d')
     ax.set_box_aspect((1, 1, 1))
     ax.plot(traj_prefilt[:,0], traj_prefilt[:,1], traj_prefilt[:,2], marker='.')
-    ax.plot(traj_filt[:, 0], traj_filt[:, 1], traj_filt[:, 2], marker='x')
+    ax.plot(traj_filt[:, 0], traj_filt[:, 1], traj_filt[:, 2], marker='.')
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
