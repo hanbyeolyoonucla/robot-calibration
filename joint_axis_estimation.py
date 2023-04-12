@@ -67,8 +67,6 @@ def joint_axis_estm(P, center, radius):
     # initialize G_old
     G_old = SO3.Ry(gamma) * SO3.Rz(-zeta) * center
     G_old = np.append(G_old[0:2], radius)
-    plt.plot(P_plane[0, :], P_plane[1, :], marker='.')
-    plt.plot(G_old[0], G_old[1], '.')
 
     # calculate E, eps, E Jacobian
     E_old, eps_old = radial_error(P_plane, G_old)
@@ -89,14 +87,11 @@ def joint_axis_estm(P, center, radius):
                 break
         if eps_new < eps_old:
             G_old = G_new
-            plt.plot(G_old[0], G_old[1], '.')
             E_old, eps_old = radial_error(P_plane, G_old)
             J_old = e_jacobian(P_plane, G_old, E_old)
     G_opt = G_old
     E_opt = E_old
     e_r = np.sqrt(np.mean(E_opt ** 2))
-    plt.plot(G_opt[0], G_opt[1], '*')
-    # plt.show()
 
     # estimation of rotary joint axis
     Q_opt_plane = np.append(G_opt[0:2], np.mean(P_plane[2, :]))
@@ -104,16 +99,13 @@ def joint_axis_estm(P, center, radius):
     Q_opt = np.squeeze(Q_opt)
     V_opt = normvec/np.linalg.norm(normvec)
 
-    # plot
-    mag = 10
-    ax = plt.subplot(projection='3d')
-    ax.scatter(P[:, 0], P[:, 1], P[:, 2], marker='.')
-    ax.scatter(Q_opt[0], Q_opt[1], Q_opt[2], marker='*')
-    ax.quiver(Q_opt[0], Q_opt[1], Q_opt[2], mag * normvec[0], mag * normvec[1], mag * normvec[2])
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
-    ax.set_zlabel('Z Label')
-    # plt.show()
+    # flip axis
+    vec_1 = P[0] - Q_opt
+    vec_2 = P[1] - Q_opt
+    pos_dir = np.cross(vec_1, vec_2)
+    pos_dir = pos_dir/np.linalg.norm(pos_dir)
+    if np.dot(pos_dir, V_opt) < 0:
+        V_opt = -V_opt
 
     return Q_opt, V_opt, e_p, e_r
 
@@ -147,6 +139,10 @@ if __name__ == '__main__':
     P5 = data_tool[1:30,6:9]
     P6 = data_tool[30:-3,6:9]
 
+    # positive direction rotation
+    P2 = np.flip(P2,axis=0)
+    P5 = np.flip(P5,axis=0)
+
     # zero position data for tool setup
     theta_zero = data_tool[-1,5]
     P_faro_smr = np.mean(data_tool[-3:,6:9],axis=0)
@@ -167,7 +163,7 @@ if __name__ == '__main__':
     Q5, V5, e_p5, e_r5 = joint_axis_estm(P5, C5, r5)
     Q6, V6, e_p6, e_r6 = joint_axis_estm(P6, C6, r6)
 
-    V1 = -V1
+    # V1 = -V1
 
     T_base = frame_setup(Q1,Q2,V1,V2,-135)
     T_faro_flange = frame_setup(Q6,Q5,V6,V5,70)
@@ -175,5 +171,30 @@ if __name__ == '__main__':
     P_flange_smr = SO3.Rz(-theta_zero*pi/180)*P_flange_smr
     T_tool = SE3.Rt(np.eye(3), P_flange_smr)
 
+    # plot
+    mag = 50
+    ax = plt.subplot(projection='3d')
+    ax.scatter(P1[:, 0], P1[:, 1], P1[:, 2], marker='.')
+    ax.scatter(P2[:, 0], P2[:, 1], P2[:, 2], marker='.')
+    ax.scatter(P5[:, 0], P5[:, 1], P5[:, 2], marker='.')
+    ax.scatter(P6[:, 0], P6[:, 1], P6[:, 2], marker='.')
+    ax.scatter(Q1[0], Q1[1], Q1[2], marker='*')
+    ax.scatter(Q2[0], Q2[1], Q2[2], marker='*')
+    ax.scatter(Q5[0], Q5[1], Q5[2], marker='*')
+    ax.scatter(Q6[0], Q6[1], Q6[2], marker='*')
+    ax.quiver(Q1[0], Q1[1], Q1[2], mag * V1[0], mag * V1[1], mag * V1[2])
+    ax.quiver(Q2[0], Q2[1], Q2[2], mag * V2[0], mag * V2[1], mag * V2[2])
+    ax.quiver(Q5[0], Q5[1], Q5[2], mag * V5[0], mag * V5[1], mag * V5[2])
+    ax.quiver(Q6[0], Q6[1], Q6[2], mag * V6[0], mag * V6[1], mag * V6[2])
+    # ax.set_box_aspect((max(np.ptp(P1[:,0]),np.ptp(P2[:,0]),np.ptp(P5[:,0]),np.ptp(P6[:,0])),
+    #                    max(np.ptp(P1[:, 1]), np.ptp(P2[:, 1]), np.ptp(P5[:, 1]), np.ptp(P6[:, 1])),
+    #                    max(np.ptp(P1[:, 2]), np.ptp(P2[:, 2]), np.ptp(P5[:, 2]), np.ptp(P6[:, 2]))))
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+    plt.show()
+
     print(T_base)
     print(T_tool)
+    np.savetxt('data_setup/T_base.txt', T_base)
+    np.savetxt('data_setup/T_tool.txt', T_tool)
