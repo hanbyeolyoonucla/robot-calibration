@@ -6,7 +6,7 @@ from spatialmath import base
 from math import pi
 import numpy as np
 import matplotlib.pyplot as plt
-import Meca
+import myrobot
 
 def generate(robot, mu, sigma, box_l, angle, N, M):
 
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     T_base = SE3()
 
     # define robot
-    nrobot = Meca.Meca(mdh=nominal, T_base=T_base, T_tool=T_tool)
+    nrobot = myrobot.SerialLink(mdh=nominal, T_base=T_base, T_tool=T_tool)
 
     # nominal configuration
     mu = np.array([4.333911931,	13.46457946,	39.44606267,	-89.63181963,	-88.44431986,	76.71547582])
