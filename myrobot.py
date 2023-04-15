@@ -2,15 +2,15 @@
 
 # all parameters are in SI units: m, radians, kg, kg.m2, N.m, N.m.s etc.
 
-# from math import pi
+from math import pi
 import numpy as np
+import roboticstoolbox as rtb
 from roboticstoolbox import DHRobot, RevoluteMDH
 from spatialmath import SE3
 from spatialmath import base
 
 
-class Meca(DHRobot):
-
+class SerialLink(DHRobot):
 
     def __init__(self, symbolic=False, mdh=np.zeros((6,4)), T_base=SE3(np.identity(4)), T_tool=SE3(np.identity(4))):
 
@@ -21,11 +21,9 @@ class Meca(DHRobot):
             pi = sym.pi()
         else:
             from math import pi
-
             zero = 0.0
 
         # Nominal MDH alpha a theta d
-        nmdh = mdh
         deg = pi / 180
         inch = 0.0254
 
@@ -33,7 +31,7 @@ class Meca(DHRobot):
 
         L = [
             RevoluteMDH(
-                alpha=nmdh[0, 0], a=nmdh[0, 1], d=nmdh[0, 3],  offset=nmdh[0, 2],
+                alpha=mdh[0, 0], a=mdh[0, 1], d=mdh[0, 3],  offset=mdh[0, 2],
                 I=[0, 0.35, 0, 0, 0, 0],
                 # inertia tensor of link with respect to
                 # center of mass I = [L_xx, L_yy, L_zz,
@@ -52,7 +50,7 @@ class Meca(DHRobot):
                 qlim=[-175 * deg, 175 * deg],  # minimum and maximum joint angle
             ),
             RevoluteMDH(
-                alpha=nmdh[1, 0], a=nmdh[1, 1], d=nmdh[1, 3],  offset=nmdh[1, 2],
+                alpha=mdh[1, 0], a=mdh[1, 1], d=mdh[1, 3],  offset=mdh[1, 2],
                 I=[0.13, 0.524, 0.539, 0, 0, 0],
                 r=[-0.3638, 0.006, 0.2275],
                 m=17.4,
@@ -63,7 +61,7 @@ class Meca(DHRobot):
                 qlim=[-70 * deg, 90 * deg],  # qlim=[-45*deg, 225*deg]
             ),
             RevoluteMDH(
-                alpha=nmdh[2, 0], a=nmdh[2, 1], d=nmdh[2, 3],  offset=nmdh[2, 2],
+                alpha=mdh[2, 0], a=mdh[2, 1], d=mdh[2, 3],  offset=mdh[2, 2],
                 I=[0.066, 0.086, 0.0125, 0, 0, 0],
                 r=[-0.0203, -0.0141, 0.070],
                 m=4.8,
@@ -74,7 +72,7 @@ class Meca(DHRobot):
                 qlim=[-135 * deg, 70 * deg],  # qlim=[-225*deg, 45*deg]
             ),
             RevoluteMDH(
-                alpha=nmdh[3, 0], a=nmdh[3, 1], d=nmdh[3, 3],  offset=nmdh[3, 2],
+                alpha=mdh[3, 0], a=mdh[3, 1], d=mdh[3, 3],  offset=mdh[3, 2],
                 I=[1.8e-3, 1.3e-3, 1.8e-3, 0, 0, 0],
                 r=[0, 0.019, 0],
                 m=0.82,
@@ -85,7 +83,7 @@ class Meca(DHRobot):
                 qlim=[-170 * deg, 170 * deg],  # qlim=[-110*deg, 170*deg]
             ),
             RevoluteMDH(
-                alpha=nmdh[4, 0], a=nmdh[4, 1], d=nmdh[4, 3],  offset=nmdh[4, 2],
+                alpha=mdh[4, 0], a=mdh[4, 1], d=mdh[4, 3],  offset=mdh[4, 2],
                 I=[0.3e-3, 0.4e-3, 0.3e-3, 0, 0, 0],
                 r=[0, 0, 0],
                 m=0.34,
@@ -96,7 +94,7 @@ class Meca(DHRobot):
                 qlim=[-115 * deg, 115 * deg],
             ),
             RevoluteMDH(
-                alpha=nmdh[5, 0], a=nmdh[5, 1], d=nmdh[5, 3],  offset=nmdh[5, 2],
+                alpha=mdh[5, 0], a=mdh[5, 1], d=mdh[5, 3],  offset=mdh[5, 2],
                 I=[0.15e-3, 0.15e-3, 0.04e-3, 0, 0, 0],
                 r=[0, 0, 0.032],
                 m=0.09,
@@ -120,7 +118,7 @@ class Meca(DHRobot):
         )
 
         self.qr = np.array([0, pi / 2, -pi / 2, 0, 0, 0])
-        self.qz = np.zeros((1,6))
+        self.qz = np.zeros((6))
 
         # nominal table top picking pose
         self.qn = np.array([0, pi / 4, pi, 0, pi / 4, 0])
@@ -241,9 +239,19 @@ class Meca(DHRobot):
 
 if __name__ == "__main__":  # pragma nocover
 
-    meca = Meca(symbolic=False)
+    # nominal DH: alpha a theta d
+    nominal_dh = np.array([[0, 0, 0, 135],
+                        [-pi / 2, 0, -pi / 2, 0],
+                        [0, 135, 0, 0],
+                        [-pi / 2, 38, 0, 120],
+                        [pi / 2, 0, 0, 0],
+                        [-pi / 2, 0, pi, 70]])
+
+    meca = SerialLink(mdh=nominal_dh)
     print(meca)
-    print(meca.dynamics())
+    qt = rtb.jtraj(meca.qr, meca.qz, 50)
+    meca.plot(qt.q)
+
     # T = puma.fkine(puma.qn)
     # print(puma.ikine_a(T, 'lu').q)
     # print(puma.ikine_a(T, 'ru').q)
