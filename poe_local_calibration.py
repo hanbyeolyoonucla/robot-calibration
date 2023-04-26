@@ -51,11 +51,29 @@ def forward_kinematics(T_0, s_local, qs):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # calibration data [q1 q2 ... q6 x y z]
-    data_cal = np.loadtxt('data_calibration/Cali_Points_Nornimal76_plus_Normal50.csv', delimiter=',')
+    # data_cal = np.loadtxt('data_calibration/Cali_Points_Nornimal76_plus_Normal50.csv', delimiter=',')
+    data1 = np.loadtxt('data_calibration/cal_data/uniform_dist_data_0deg_160cube_Output.csv', delimiter=',')
+    data2 = np.loadtxt('data_calibration/cal_data/norm_dist_data_0deg_80cube_Output.csv', delimiter=',')
+    data3 = np.loadtxt('data_calibration/cal_data/norm_dist_data_0deg_160cube_Output.csv', delimiter=',')
+    data4 = np.loadtxt('data_calibration/cal_data/norm_dist_data_90deg_80cube_Output.csv', delimiter=',')
+    data5 = np.loadtxt('data_calibration/cal_data/norm_dist_data_90deg_160cube_Output.csv', delimiter=',')
+    data6 = np.loadtxt('data_calibration/cal_data/norm_dist_data_n90_80cube_Output.csv', delimiter=',')
+    data7 = np.loadtxt('data_calibration/cal_data/norm_dist_data_n90_160cube_Output.csv', delimiter=',')
+    data_cal = np.concatenate((data1,data2,data3,data4,data5,data6,data7),axis=0)
+    # data_cal = data7
+    data_cal[:, 6:9] = data_cal[:, 6:9] * 1000  # m to mm
     data_cal[:, :6] = data_cal[:, :6] * pi / 180  # degree to rad
 
     # validation data [q1 q2 ... q6 x y z]
-    data_val = np.loadtxt('data_calibration/Test_Points_Normal.csv', delimiter=',')
+    # data_val = np.loadtxt('data_calibration/Test_Points_Normal.csv', delimiter=',')
+    data_val = np.loadtxt('data_calibration/val_data/uniform_dist_data_0deg_160cube_Output.csv', delimiter=',')
+    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_0deg_80cube_Output.csv', delimiter=',')
+    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_0deg_160cube_Output.csv', delimiter=',')
+    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_90deg_80cube_Output.csv', delimiter=',')
+    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_90deg_160cube_Output.csv', delimiter=',')
+    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_n90_80cube_Output.csv', delimiter=',')
+    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_n90_160cube_Output.csv', delimiter=',')
+    data_val[:, 6:9] = data_val[:, 6:9] * 1000  # m to mm
     data_val[:, :6] = data_val[:, :6] * pi / 180  # degree to rad
 
     # frame setup
@@ -129,11 +147,11 @@ if __name__ == '__main__':
         print(Tc_0[i])
 
     # validation
-    # Pe = np.empty((0,3))
-    # for i in range(data_val.shape[0]):
-    #     T = forward_kinematics(Tc_0, s_local, data_val[i,:6])
-    #     Pe = np.row_stack((Pe, T.t))
-    # err_val = data_val[:,6:9] - Pe
-    # err_val = err_val.reshape((-1,1))
-    # err_val = np.linalg.norm(err_val)**2/data_val.shape[0]
-    # print('validataion err :', np.sqrt(err_val))
+    Pe = np.empty((0,3))
+    for i in range(data_val.shape[0]):
+        T = forward_kinematics(Tc_0, s_local, data_val[i,:6])
+        Pe = np.row_stack((Pe, T.t))
+    err_val = data_val[:,6:9] - Pe
+    err_val = err_val.reshape((-1,1))
+    err_val = np.linalg.norm(err_val)**2/data_val.shape[0]
+    print('validataion err :', np.sqrt(err_val))
