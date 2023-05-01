@@ -50,6 +50,7 @@ def forward_kinematics(T_0, s_local, qs):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+
     # calibration data [q1 q2 ... q6 x y z]
     # data_cal = np.loadtxt('data_calibration/Cali_Points_Nornimal76_plus_Normal50.csv', delimiter=',')
     data1 = np.loadtxt('data_calibration/cal_data/uniform_dist_data_0deg_160cube_Output.csv', delimiter=',')
@@ -100,7 +101,7 @@ if __name__ == '__main__':
     T_0.append(SE3(T_tool))
 
     # calibrated local frame
-    Tc_0 = T_0
+    Tc_0 = T_0.copy()
 
     # nominal local screws for revolute joints
     s_local = np.array([0, 0, 0, 0, 0, 1])
@@ -111,7 +112,7 @@ if __name__ == '__main__':
     # for j in range(100):
     while x_norm > 1e-12:
         Pe_nominal = np.empty((0, 3))
-        K = np.empty((0, 6 * 6 + 6))
+        K = np.empty((0, 6 * 6 ))
         for i in range(data_cal.shape[0]):
             # nominal FK
             T_nominal = forward_kinematics(Tc_0, s_local, data_cal[i, :6])
@@ -120,7 +121,7 @@ if __name__ == '__main__':
             # identification matrix A and K
             A = id_jacobian(Tc_0, s_local, data_cal[i, :6])
             K_PI = np.concatenate((-skew(T_nominal.t), np.eye(3)), axis=1)
-            K_i = np.matmul(K_PI, A)
+            K_i = np.matmul(K_PI, A[:,:6*6])
             K = np.concatenate((K, K_i), axis=0)
         Pe_actual = data_cal[:, 6:9]
         z = Pe_actual - Pe_nominal
@@ -143,8 +144,13 @@ if __name__ == '__main__':
         print('x norm:', x_norm)
         print('err:',np.sqrt(err))
 
+    # print result
     for i in range(len(Tc_0)):
         print(Tc_0[i])
+
+    # save result
+    np.savetxt('result_calibration/poe_local_calib.txt', np.array(Tc_0).reshape((-1, 4)))
+    np.savetxt('result_calibration/poe_local_nominal.txt', np.array(T_0).reshape((-1, 4)))
 
     # validation
     Pe = np.empty((0,3))
