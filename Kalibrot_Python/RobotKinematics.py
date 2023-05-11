@@ -71,79 +71,80 @@ def DH_mat(x):
 def Rot2Quat_1(R):
     # https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Quaternions
     t = R[0, 0] - R[1, 1] - R[2, 2]
-    quat = np.zeros((4, 1))
-    quat[0, 0] = 0.5 * sqrt(1 + t)
-    s = 1 / (4 * quat[0])
+    quat_in = np.zeros((4, 1))
+    quat_in[0, 0] = 0.5 * sqrt(1 + t)
+    s = 1 / (4 * quat_in[0])
 
-    quat[1, 0] = s * (R[0, 1] + R[1, 0])
-    quat[2, 0] = s * (R[0, 2] + R[2, 0])
-    quat[3, 0] = s * (R[2, 1] - R[1, 2])
+    quat_in[1, 0] = s * (R[0, 1] + R[1, 0])
+    quat_in[2, 0] = s * (R[0, 2] + R[2, 0])
+    quat_in[3, 0] = s * (R[2, 1] - R[1, 2])
 
-    return quat
+    return quat_in
 
 
 def Rot2Quat_2(R):
     # https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Quaternions
     t = R[0, 0] + R[1, 1] + R[2, 2]
-    quat = np.zeros((4, 1))
-    quat[3, 0] = 0.5 * sqrt(1 + t)
-    s = 1 / (4 * quat[3])
+    quat_in = np.zeros((4, 1))
+    quat_in[3, 0] = 0.5 * sqrt(1 + t)
+    s = 1 / (4 * quat_in[3])
 
-    quat[0, 0] = s * (R[2, 1] - R[1, 2])
-    quat[1, 0] = s * (R[0, 2] - R[2, 0])
-    quat[2, 0] = s * (R[1, 0] - R[0, 1])
+    quat_in[0, 0] = s * (R[2, 1] - R[1, 2])
+    quat_in[1, 0] = s * (R[0, 2] - R[2, 0])
+    quat_in[2, 0] = s * (R[1, 0] - R[0, 1])
 
-    return quat
+    return quat_in
 
 
 def Rot2Quat_3(R):
     # https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Quaternions
     t = R[1, 1] - R[0, 0] - R[2, 2]
-    quat = np.zeros((4, 1))
-    quat[1, 0] = 0.5 * sqrt(1 + t)
-    s = 1 / (4 * quat[1])
+    quat_in = np.zeros((4, 1))
+    quat_in[1, 0] = 0.5 * sqrt(1 + t)
+    s = 1 / (4 * quat_in[1])
 
-    quat[0, 0] = s * (R[0, 1] + R[1, 0])
-    quat[2, 0] = s * (R[1, 2] + R[2, 1])
-    quat[3, 0] = s * (R[0, 2] - R[2, 0])
+    quat_in[0, 0] = s * (R[0, 1] + R[1, 0])
+    quat_in[2, 0] = s * (R[1, 2] + R[2, 1])
+    quat_in[3, 0] = s * (R[0, 2] - R[2, 0])
 
-    return quat
+    return quat_in
 
 
 def Rot2Quat_4(R):
     # https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Quaternions
     t = R[2, 2] - R[1, 1] - R[0, 0]
-    quat = np.zeros((4, 1))
-    quat[2, 0] = 0.5 * sqrt(1 + t)
-    s = 1 / (4 * quat[2])
+    quat_in = np.zeros((4, 1))
+    quat_in[2, 0] = 0.5 * sqrt(1 + t)
+    s = 1 / (4 * quat_in[2])
 
-    quat[0, 0] = s * (R[0, 2] + R[2, 0])
-    quat[1, 0] = s * (R[1, 2] + R[2, 1])
-    quat[3, 0] = s * (R[1, 0] - R[0, 1])
+    quat_in[0, 0] = s * (R[0, 2] + R[2, 0])
+    quat_in[1, 0] = s * (R[1, 2] + R[2, 1])
+    quat_in[3, 0] = s * (R[1, 0] - R[0, 1])
 
-    return quat
+    return quat_in
 
 
 def Rot2Quat(R):
     t = R[0, 0] + R[1, 1] + R[2, 2]
     if t > 1e-12:
-        quat = Rot2Quat_2(R)
+        quat_in = Rot2Quat_2(R)
         condition = 2
     else:
         if (R[0, 0] > R[1, 1]) and (R[0, 0] > R[2, 2]):
-            quat = Rot2Quat_1(R)
+            quat_in = Rot2Quat_1(R)
             condition = 1
         elif R[1, 1] > R[2, 2]:
-            quat = Rot2Quat_3(R)
+            quat_in = Rot2Quat_3(R)
             condition = 3
         else:
-            quat = Rot2Quat_4(R)
+            quat_in = Rot2Quat_4(R)
             condition = 4
-    return quat, condition
+    return quat_in, condition
 
 
 def Quat2Rot(quat):
-    x, y, z, w = quat[0], quat[1], quat[2], quat[3]
+    quat_in = quat.copy()
+    x, y, z, w = quat_in[0], quat_in[1], quat_in[2], quat_in[3]
 
     R = np.zeros((3, 3))
 
@@ -194,12 +195,12 @@ def Pose_deriv(q_i, DH_params_i, type):
                             [0, -np.cos(theta) * np.cos(beta) - np.sin(alpha) * np.sin(beta) * np.sin(theta), 0,
                              np.cos(alpha) * np.sin(beta) * np.cos(theta),
                              np.sin(beta) * np.sin(theta) + np.cos(beta) * np.sin(alpha) * np.cos(theta)],
-                            [0, 0, 0, -np.sin(alpha) * np.sin(beta), np.cos(alpha) * np.cos(beta)]])
+                            [0, 0, 0, -np.sin(alpha) * np.sin(beta), np.cos(alpha) * np.cos(beta)]],dtype = object)
 
     # [dR21/dx; dR22/dx; dR23/dx]       
     dR[1, :, :] = np.array([[0, np.cos(theta) * np.cos(alpha), 0, -np.sin(alpha) * np.sin(theta), 0],
                             [0, -np.cos(alpha) * np.sin(theta), 0, -np.cos(theta) * np.sin(alpha), 0],
-                            [0, 0, 0, -np.cos(alpha), 0]])
+                            [0, 0, 0, -np.cos(alpha), 0]],dtype = object)
 
     # [dR31/dx; dR32/dx; dR33/dx]
     dR[2, :, :] = np.array([[0, np.sin(beta) * np.sin(theta) + np.cos(beta) * np.sin(alpha) * np.cos(theta), 0,
@@ -208,105 +209,111 @@ def Pose_deriv(q_i, DH_params_i, type):
                             [0, np.cos(theta) * np.sin(beta) - np.cos(beta) * np.sin(alpha) * np.sin(theta), 0,
                              np.cos(alpha) * np.cos(beta) * np.cos(theta),
                              np.cos(beta) * np.sin(theta) - np.sin(alpha) * np.sin(beta) * np.cos(theta)],
-                            [0, 0, 0, -np.sin(alpha) * np.cos(beta), -np.cos(alpha) * np.sin(beta)]])
+                            [0, 0, 0, -np.sin(alpha) * np.cos(beta), -np.cos(alpha) * np.sin(beta)]],dtype = object)
 
     return dP, dR
 
 
-def quatDeriv_Rot_1(R, quat):
+def quatDeriv_Rot_1(R):
+    # quat_in = quat.copy()
     dq_dR = np.zeros((4, 9))
 
     t = 1 + R[0, 0] - R[1, 1] - R[2, 2]
 
-    quat[0, 0] = 0.5 * sqrt(t)  # qx
+    quat_in = np.zeros((4, 1))
+    quat_in[0, 0] = 0.5 * sqrt(t)  # qx
 
-    if quat[0, 0] < 1e-10:
-        quat[0, 0] = 1e-10
+    if quat_in[0, 0] < 1e-10:
+        quat_in[0, 0] = 1e-10
 
     dq_dR[0, :] = 1 / 4 * t ** (-1 / 2) * np.array([1, 0, 0, 0, -1, 0, 0, 0, -1])
 
-    dq_dR[1, :] = -1 / (4 * quat[0, 0] ** 2) * (R[0, 1] + R[1, 0]) * dq_dR[0, :] + 1 / (4 * quat[0, 0]) * np.array(
+    dq_dR[1, :] = -1 / (4 * quat_in[0, 0] ** 2) * (R[0, 1] + R[1, 0]) * dq_dR[0, :] + 1 / (4 * quat_in[0, 0]) * np.array(
         [0, 1, 0, 1, 0, 0, 0, 0, 0])
 
-    dq_dR[2, :] = -1 / (4 * quat[0, 0] ** 2) * (R[0, 2] + R[2, 0]) * dq_dR[0, :] + 1 / (4 * quat[0, 0]) * np.array(
+    dq_dR[2, :] = -1 / (4 * quat_in[0, 0] ** 2) * (R[0, 2] + R[2, 0]) * dq_dR[0, :] + 1 / (4 * quat_in[0, 0]) * np.array(
         [0, 0, 1, 0, 0, 0, 1, 0, 0])
 
-    dq_dR[3, :] = -1 / (4 * quat[0, 0] ** 2) * (R[2, 1] - R[1, 2]) * dq_dR[0, :] + 1 / (4 * quat[0, 0]) * np.array(
+    dq_dR[3, :] = -1 / (4 * quat_in[0, 0] ** 2) * (R[2, 1] - R[1, 2]) * dq_dR[0, :] + 1 / (4 * quat_in[0, 0]) * np.array(
         [0, 0, 0, 0, 0, -1, 0, 1, 0])
 
     return dq_dR
 
 
-def quatDeriv_Rot_2(R, quat):
+def quatDeriv_Rot_2(R):
+    #quat_in = quat.copy()
     dq_dR = np.zeros((4, 9))
 
     t = 1 + R[0, 0] + R[1, 1] + R[2, 2]
 
-    quat[3, 0] = 0.5 * sqrt(t)  # qw
+    quat_in = np.zeros((4, 1))
+    quat_in[3, 0] = 0.5 * sqrt(t)  # qw
 
-    if quat[3, 0] < 1e-10:
-        quat[3, 0] = 1e-10
+    if quat_in[3, 0] < 1e-10:
+        quat_in[3, 0] = 1e-10
 
     dq_dR[3, :] = 1 / 4 * t ** (-1 / 2) * np.array([1, 0, 0, 0, 1, 0, 0, 0, 1])
 
-    dq_dR[0, :] = -1 / (4 * quat[3, 0] ** 2) * (R[2, 1] - R[1, 2]) * dq_dR[3, :] + 1 / (4 * quat[3, 0]) * np.array(
+    dq_dR[0, :] = -1 / (4 * quat_in[3, 0] ** 2) * (R[2, 1] - R[1, 2]) * dq_dR[3, :] + 1 / (4 * quat_in[3, 0]) * np.array(
         [0, 0, 0, 0, 0, -1, 0, 1, 0])
 
-    dq_dR[1, :] = -1 / (4 * quat[3, 0] ** 2) * (R[0, 2] - R[2, 0]) * dq_dR[3, :] + 1 / (4 * quat[3, 0]) * np.array(
+    dq_dR[1, :] = -1 / (4 * quat_in[3, 0] ** 2) * (R[0, 2] - R[2, 0]) * dq_dR[3, :] + 1 / (4 * quat_in[3, 0]) * np.array(
         [0, 0, 1, 0, 0, 0, -1, 0, 0])
 
-    dq_dR[2, :] = -1 / (4 * quat[3, 0] ** 2) * (R[1, 0] - R[0, 1]) * dq_dR[3, :] + 1 / (4 * quat[3, 0]) * np.array(
+    dq_dR[2, :] = -1 / (4 * quat_in[3, 0] ** 2) * (R[1, 0] - R[0, 1]) * dq_dR[3, :] + 1 / (4 * quat_in[3, 0]) * np.array(
         [0, -1, 0, 1, 0, 0, 0, 0, 0])
 
     return dq_dR
 
 
-def quatDeriv_Rot_3(R, quat):
+def quatDeriv_Rot_3(R):
+    #quat_in = quat.copy()
     dq_dR = np.zeros((4, 9))
 
     t = 1 + R[1, 1] - R[0, 0] - R[2, 2]
 
-    quat = np.zeros((4, 1))
-    quat[1, 0] = 0.5 * sqrt(t)  # qw
+    quat_in = np.zeros((4, 1))
+    quat_in[1, 0] = 0.5 * sqrt(t)  # qw
 
-    if quat[1, 0] < 1e-10:
-        quat[1, 0] = 1e-10
+    if quat_in[1, 0] < 1e-10:
+        quat_in[1, 0] = 1e-10
 
-    dq_dR[1, :] = -1 / (4 * quat[1, 0] ** 2) * (R[0, 1] + R[1, 0]) * dq_dR[2, :] + 1 / (4 * quat[1, 0]) * np.array(
+    dq_dR[1, :] = -1 / (4 * quat_in[1, 0] ** 2) * (R[0, 1] + R[1, 0]) * dq_dR[2, :] + 1 / (4 * quat_in[1, 0]) * np.array(
         [0, 1, 0, 1, 0, 0, 0, 0, 0])
 
-    dq_dR[2, :] = -1 / (4 * quat[1, 0] ** 2) * (R[1, 2] + R[2, 1]) * dq_dR[2, :] + 1 / (4 * quat[1, 0]) * np.array(
+    dq_dR[2, :] = -1 / (4 * quat_in[1, 0] ** 2) * (R[1, 2] + R[2, 1]) * dq_dR[2, :] + 1 / (4 * quat_in[1, 0]) * np.array(
         [0, 0, 0, 0, 0, 1, 0, 1, 0])
 
-    dq_dR[3, :] = -1 / (4 * quat[1, 0] ** 2) * (R[0, 2] - R[2, 0]) * dq_dR[2, :] + 1 / (4 * quat[1, 0]) * np.array(
+    dq_dR[3, :] = -1 / (4 * quat_in[1, 0] ** 2) * (R[0, 2] - R[2, 0]) * dq_dR[2, :] + 1 / (4 * quat_in[1, 0]) * np.array(
         [0, 0, 1, 0, 0, 0, -1, 0, 0])
 
-    dq_dR[0, :] = -1 / (4 * quat[1, 0] ** 2) * (R[2, 1] - R[1, 2]) * dq_dR[2, :] + 1 / (4 * quat[1, 0]) * np.array(
+    dq_dR[0, :] = -1 / (4 * quat_in[1, 0] ** 2) * (R[2, 1] - R[1, 2]) * dq_dR[2, :] + 1 / (4 * quat_in[1, 0]) * np.array(
         [0, -1, 0, 1, 0, 0, 0, 0, 0])
 
     return dq_dR
 
 
-def quatDeriv_Rot_4(R, quat):
+def quatDeriv_Rot_4(R):
+    #quat_in = quat.copy()
     dq_dR = np.zeros((4, 9))
 
     t = 1 + R[2, 2] - R[0, 0] - R[1, 1]
 
-    quat = np.zeros((4, 1))
-    quat[2, 0] = 0.5 * sqrt(t)
+    quat_in = np.zeros((4, 1))
+    quat_in[2, 0] = 0.5 * sqrt(t)
 
-    if quat[2, 0] < 1e-10:
-        quat[2, 0] = 1e-10
+    if quat_in[2, 0] < 1e-10:
+        quat_in[2, 0] = 1e-10
 
     dq_dR[2, :] = 1 / (4 * t ** 0.5) * np.array([-1, 0, 0, 0, -1, 0, 0, 0, 1])
 
-    dq_dR[0, :] = -1 / (4 * quat[2, 0] ** 2) * (R[0, 2] + R[2, 0]) * dq_dR[2, :] + 1 / (4 * quat[2, 0]) * np.array(
+    dq_dR[0, :] = -1 / (4 * quat_in[2, 0] ** 2) * (R[0, 2] + R[2, 0]) * dq_dR[2, :] + 1 / (4 * quat_in[2, 0]) * np.array(
         [0, 0, 1, 0, 0, 0, 1, 0, 0])
 
-    dq_dR[1, :] = -1 / (4 * quat[2, 0] ** 2) * (R[1, 2] + R[2, 1]) * dq_dR[2, :] + 1 / (4 * quat[2, 0]) * np.array(
+    dq_dR[1, :] = -1 / (4 * quat_in[2, 0] ** 2) * (R[1, 2] + R[2, 1]) * dq_dR[2, :] + 1 / (4 * quat_in[2, 0]) * np.array(
         [0, 0, 0, 0, 0, 1, 0, 1, 0])
 
-    dq_dR[3, :] = -1 / (4 * quat[2, 0] ** 2) * (R[1, 0] - R[0, 1]) * dq_dR[2, :] + 1 / (4 * quat[2, 0]) * np.array(
+    dq_dR[3, :] = -1 / (4 * quat_in[2, 0] ** 2) * (R[1, 0] - R[0, 1]) * dq_dR[2, :] + 1 / (4 * quat_in[2, 0]) * np.array(
         [0, -1, 0, 1, 0, 0, 0, 0, 0])
 
     return dq_dR
@@ -336,14 +343,14 @@ def RotMatDeriv(q_i, DH_params_i, type):
          np.cos(alpha) * np.sin(beta) * np.cos(theta),
          np.sin(beta) * np.sin(theta) + np.cos(beta) * np.sin(alpha) * np.cos(theta)],
         [0, 0, 0, -np.sin(alpha) * np.sin(beta), np.cos(alpha) * np.cos(beta)]
-    ])
+    ],dtype = object)
 
     # [dR21/dx; dR22/dx; dR23/dx]
     dR_mat_2 = np.array([
         [0, np.cos(theta) * np.cos(alpha), 0, -np.sin(alpha) * np.sin(theta), 0],
         [0, -np.cos(alpha) * np.sin(theta), 0, -np.cos(theta) * np.sin(alpha), 0],
         [0, 0, 0, -np.cos(alpha), 0]
-    ])
+    ],dtype = object)
 
     # [dR31/dx; dR32/dx; dR33/dx]
     dR_mat_3 = np.array([
@@ -354,7 +361,7 @@ def RotMatDeriv(q_i, DH_params_i, type):
          np.cos(alpha) * np.cos(beta) * np.cos(theta),
          np.cos(beta) * np.sin(theta) - np.sin(alpha) * np.sin(beta) * np.cos(theta)],
         [0, 0, 0, -np.sin(alpha) * np.cos(beta), -np.cos(alpha) * np.sin(beta)]
-    ])
+    ],dtype = object)
 
     dR = np.concatenate((dR_mat_1, dR_mat_2, dR_mat_3), axis=0)
 
@@ -489,7 +496,7 @@ class Robot_Kinematics:
         if P_e.size == 0:
             pass
         else:
-            _, _, P_e = self.getPoseNum(self, q, DH_params)
+            _, P_e = self.getPoseNum(q, DH_params)
             P_e = P_e[0:3, 0]
 
         T = self.m_T_init
@@ -505,10 +512,10 @@ class Robot_Kinematics:
             type = self.m_joint_types[i]
             DP_i, dR_i = Pose_deriv(q[i], xi, type)  # of i wrt i-1
 
-            if type == 'r':
-                xi[1] += q[i]
-            else:
-                xi[0] += q[i]
+            # if type == 'r':
+            #     xi[1] += q[i]
+            # else:
+            #     xi[0] += q[i]
 
             Ti = DH_matNum(xi)
 
@@ -520,7 +527,7 @@ class Robot_Kinematics:
             DR_i = np.zeros((3, 5))
 
             for dim in range(3):
-                DR_i[dim, :] = P_e_i.T @ dR_i[:, :, dim]
+                  DR_i[dim, :] = P_e_i.T @ dR_i[dim, :, :]
 
             Di = R_i_1_0 @ (DP_i + DR_i)
 
@@ -673,23 +680,23 @@ class Robot_Kinematics:
             quat_i, cond = Rot2Quat(R_i)
 
             if cond == 1:
-                dq_dR_i = quatDeriv_Rot_1(R_i,quat)
+                dq_dR_i = quatDeriv_Rot_1(R_i)
             elif cond == 2:
-                dq_dR_i = quatDeriv_Rot_2(R_i,quat)
+                dq_dR_i = quatDeriv_Rot_2(R_i)
             elif cond == 3:
-                dq_dR_i = quatDeriv_Rot_3(R_i,quat)
+                dq_dR_i = quatDeriv_Rot_3(R_i)
             elif cond == 4:
-                dq_dR_i = quatDeriv_Rot_4(R_i,quat)
+                dq_dR_i = quatDeriv_Rot_4(R_i)
 
-            n = quat[3, 0]
-            e = quat[0:3, 0]
-            n_i = quat_i[3, 0]
-            e_i = quat_i[0:3, 0]
+            n = quat.copy()[3, 0]
+            e = quat.copy()[0:3, 0]
+            n_i = quat_i.copy()[3, 0]
+            e_i = quat_i.copy()[0:3, 0]
             quat[0:3, 0] = n * e_i + n_i * e + np.cross(e, e_i)
             quat[3, 0] = n * n_i - e.T @ e_i
 
-            Dn = Dquat[3, :]
-            De = Dquat[0:3, :]
+            Dn = Dquat.copy()[3, :]
+            De = Dquat.copy()[0:3, :]
             Dn_i = dq_dR_i[3, :] @ dR
             De_i = dq_dR_i[0:3, :] @ dR
 
@@ -724,7 +731,7 @@ class Robot_Kinematics:
         if self.m_tool_added == 1:
             # Tool added
             R_tool = self.m_T_tool[0:3, 0:3]
-            quat_tool = Rot2Quat(R_tool)
+            quat_tool, _ = Rot2Quat(R_tool)
 
             n = quat[3, 0]
             e = quat[0:3, 0]

@@ -1,14 +1,6 @@
 import numpy as np
-from sympy import symbols, cos, sin
-from sympy import *
-#import scipy.io
-import math
-import temp
 from RobotKinematics import Robot_Kinematics
-from temp import DH_matNum
 from Calibrate import Calibrate
-
-
 
 
 A = np.loadtxt('./RealRobotsData/MECA/Cali_data_01.csv', delimiter=',').T
@@ -85,27 +77,20 @@ W = np.vstack([1*np.ones((1, m)),
 # data to consider
 P_m = P_m[dim, :]
 
-options = {'solver': "pinv", 'damping': 1e-03, 'MaxIter': 1000}
-# options['Visualize'] = [True, [0,0,0,0,0,0]]
+options_pinv = {'solver': "pinv", 'damping': 1e-03, 'MaxIter': 1000, 'Visualize': [True, np.array([0, 0, 0, 0, 0, 0])]}
 
-# options = {}
-# options['solver'] = "pinv"
-# options['damping'] = 1e-03
-# options['MaxIter'] = 1000
 
-DH_params_pinv, P_pinv, W_pinv = Calibrate(Robot, dim, P_m, Q, DH, W, w_p, Limits, options)
-# quat = np.zeros((4,1))
-# quat[0,0] = 1
-# quat[1,0] = 2
-# quat[2,0] = 3
-# quat[3,0] = 4
-#
-# n = quat[3,0]
-# print(n)
+DH_params_pinv, P_pinv, W_pinv = Calibrate(Robot, dim, P_m, Q, DH, W, w_p, Limits, options_pinv)
 
-# DH_params = DH.reshape(5*n_joints, 1)
-#
-# print(DH_params[4::5])
+
+# options_qp = {'solver': "qp", 'damping': 1e-03, 'MaxIter': 1000}
+# # DH_params_qp, P_qp, W_qp = Calibrate(Robot, dim, P_m, Q, DH, W, w_p, Limits, options_qp)
+
+DH_pinv = np.reshape(DH_params_pinv, (6, 5))[:, ::-1]
+print(DH_pinv)
+# DH_qp = np.reshape(DH_params_qp, (6, 5))[:, ::-1]
+
+
 
 
 

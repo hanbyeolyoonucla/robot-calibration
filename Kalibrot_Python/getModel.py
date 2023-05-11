@@ -9,8 +9,10 @@ import numpy as np
 from scipy.linalg import svd
 from itertools import combinations
 
-from qpsolvers import solve_qp
-
+#from qpsolvers import solve_qp
+import qpsolvers
+import cvxopt
+import quadprog
 from sklearn.metrics import mean_squared_error
 
 import time
@@ -84,7 +86,7 @@ def getEstimate(Robot, Q, DH_params):
 
     for i in range(n_points):
         q = Q[:, i]
-        _, P[:, i] = Robot.getPoseNum(q, DH_params)
+        _, P[:, i:i+1] = Robot.getPoseNum(q, DH_params)
         # _, _, P[:, i] = Robot.getPose(q, DH_params)
 
     return P
@@ -112,7 +114,7 @@ def get_Model(Robot, dim, P_m, Q, x0, W, w_p, DH_param_lims, options):
     n_var = len(DH_params) # 4*nj
     n_joints, _ = Q.shape
 
-    W_p = w_p.T.flatten()
+    W_p = w_p.flatten()
     f = np.where(W_p == 0)[0]
     f_optimize = np.where(W_p == 1)[0]
     W_p = np.diag(W_p)
@@ -168,7 +170,7 @@ def get_Model(Robot, dim, P_m, Q, x0, W, w_p, DH_param_lims, options):
     while err > Err and iter < Iter:
         start = time.time()
 
-        dP = np.zeros(n_dim*n_points)
+        dP = np.zeros((n_dim*n_points,1))
         D = np.zeros((n_dim*n_points,n_var))
         x_tot = np.zeros(n_var)
         x_base_tot = np.zeros(n_var)
@@ -183,11 +185,11 @@ def get_Model(Robot, dim, P_m, Q, x0, W, w_p, DH_param_lims, options):
         DH_params[3::5] = np.arctan2(np.sin(DH_params[3::5]), np.cos(DH_params[3::5]))
         DH_params[4::5] = np.arctan2(np.sin(DH_params[4::5]), np.cos(DH_params[4::5]))
 
-        lb = (DH_param_lims[:, 0] - DH_params) - 1e-06
-        ub = (DH_param_lims[:, 1] - DH_params) + 1e-06
+        lb = (DH_param_lims[:, 0].reshape(-1, 1) - DH_params) - 1e-06
+        ub = (DH_param_lims[:, 1].reshape(-1, 1) - DH_params) + 1e-06
 
-        lb = np.delete(lb, f_notOptimize)
-        ub = np.delete(ub, f_notOptimize)
+        lb = np.delete(lb, f_notOptimize).reshape(-1, 1)
+        ub = np.delete(ub, f_notOptimize).reshape(-1, 1)
         
         for i in range(n_points):
         
@@ -198,13 +200,14 @@ def get_Model(Robot, dim, P_m, Q, x0, W, w_p, DH_param_lims, options):
             Robot, _, P_expect, Dp, Dor = Robot.getKineDeriv_Ana(q, DH_params)
             P_expect = P_expect[dim, 0]
         
-            v1 = n_dim*i-n_dim
+            v1 = n_dim*(i+1)-n_dim
             v2 = v1+n_dim
         
             dP[v1:v2, 0] = W[:, j]*(P_m[:, j]-P_expect)
         
             Der = np.vstack((Dp, Dor))
-            D[v1:v2, :] = W[:, j]*Der[dim, :].dot(W_p)
+            D[v1:v2, :] = (W[:, j].reshape(3,1) * Der[dim, :]) @ W_p
+
         
         D = np.delete(D, f_notOptimize, axis=1)
         H = D.T.dot(D)
@@ -233,8 +236,28 @@ def get_Model(Robot, dim, P_m, Q, x0, W, w_p, DH_param_lims, options):
         if solver == "pinv":
             x = -np.linalg.pinv(H) @ f
         elif solver == "qp":
-            x0_qp = initializeSol(H, f, lb, ub)
-            x = solve_qp(H, f, None, None, None, None, lb, ub, x0_qp, solver="quadprog", options=options)
+            ###x0_qp = initializeSol(H, f, lb, ub)
+            # x = solve_qp(H, f, None, None, None, None, lb, ub, x0_qp, solver = "quadprog", options=options)
+            # options = {'show_progress': True, 'maxiters': 100}
+            H = cvxopt.matrix(H)
+            f = cvxopt.matrix(f)
+            lb = cvxopt.matrix(lb)
+            ub = cvxopt.matrix(ub)
+
+            G = np.hstack((-np.eye(len(f)), np.eye(len(f))))
+            h = np.vstack((-lb, ub))
+            x = cvxopt.solvers.qp(H, f, G, h, None, None, options = {'kktsolver':'chol'})
+
+            # x0_qp = cvxopt.matrix(x0_qp)
+            # x = cvxopt.solvers.qp(H, f, None, None, None, None, lb, ub, x0_qp, options = {'kktsolver':'chol'})
+            # f = f.flatten()
+            # lb = lb.flatten()
+            # ub = ub.flatten()
+            # G = np.hstack((np.eye(17), -np.eye(17)))
+            # h = np.vstack((ub, -lb))
+            # H = np.matrix(H)
+            # x = quadprog.solve_qp(H, f, G, h)
+
             if x is None:
                 print("*******INFEASIBLE******")
                 break
@@ -254,12 +277,14 @@ def get_Model(Robot, dim, P_m, Q, x0, W, w_p, DH_param_lims, options):
             K = np.eye(len(f_optimize))
 
         K_tot = np.zeros((n_var, n_var))
-        K_tot[f_optimize, f_optimize] = K
+
+        # K_tot[f_optimize,:][:,f_optimize] = K
+        K_tot[f_optimize[:, None], f_optimize] = K
 
         x_tot = np.zeros((n_var, 1))
-        x_tot[f_optimize, 0] = x
+        x_tot[f_optimize, :] = x
         x_base_tot = np.zeros((n_var, 1))
-        x_base_tot[f_optimize, 0] = x_base
+        x_base_tot[f_optimize, :] = x_base
         DH_params_old = DH_params
         DH_params_base = DH_params + x_base_tot
         DH_params = DH_params + x_tot
@@ -309,9 +334,11 @@ def get_Model(Robot, dim, P_m, Q, x0, W, w_p, DH_param_lims, options):
             dP_opt = dP
             D_opt = D
 
+        iter += 1
         end = time.time()
         time_iter = end - start
 
+        print("iter time: " + str(time_iter))
         t = t + time_iter
 
         if np.linalg.norm(x) <= 1e-12:
