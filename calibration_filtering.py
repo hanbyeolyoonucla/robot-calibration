@@ -57,23 +57,26 @@ if __name__ == '__main__':
                     [-pi / 2, 0, pi, 70]])
 
     # calibrated DH: alpha a theta d
-    calibrated = np.array([[0.0000000,-1.5685302,-0.0015844,-1.5710132,1.5713967,-1.5703714],
-                           [0.0000000,0.3760858,134.9888038,37.8811929,0.0460869,0.0019857],
-                           [0.0000000,-1.5714982,0.0019691,0.0000571,0.0018524,3.1415927],
-                           [135.0000000,0.1216121,0.0000000,120.0658861,-0.0415388,70.0000000]])
-    calibrated = np.transpose(calibrated)
+    calibrated = np.array([[0,	0,	0, 135],
+                           [-1.567671326, -0.09418696603, -1.567522278, 0.6327129301],
+                           [0.00232117105, 134.99947, -0.001921290774, 0],
+                           [-1.57539267, 37.78467258, 0.004128683254, 119.8986164],
+                           [1.572228153, -0.04966838003, -0.0007294401206, -0.003682920773],
+                           [-1.567004188, 0.0002605447373, 3.141592654,	70]])
+    # calibrated = np.transpose(calibrated)
 
     # robot base and tool information
-    TCP = np.array([-0.7041735503,	-0.3506146737,	158.0632991,	-153.5539579,	85.22858361,	-26.93566677])
+    TCP = np.array([-0.666253614,	-0.1984292699,	158.1194595,	166.8310916,	85.81981908,	12.75822422])
     T_tool = SE3.Trans(TCP[0:3]) * SE3.RPY(np.flip(TCP[3:6]), unit='deg', order='xyz')
     T_base = SE3()
 
     # load pre-filtered trajectory
-    traj_prefilt = np.loadtxt('data_prefilter/typo_1.2A-8/Unfiltered_occ_01.txt')
+    traj_prefilt = np.loadtxt('data_prefilter/typo_1.2F-8/Unfiltered_axial_04.txt')
 
     # filter trajectory
-    q_init = np.array([5.583879,14.467759,37.938621,-88.654655,-87.679138,25.230172])*pi/180
+    q_init = np.array([4.632414,35.811466,10.487845,-98.90431,-98.297586,70.859483])*pi/180
     T_filt, traj_filt, q_filt = filter(nmdh=nominal, cmdh=calibrated, T_base=T_base, T_tool=T_tool,trajectory=traj_prefilt,q0=q_init)
+
     # check deviation due to filtering
     print(np.mean(traj_filt[:,0:3]-traj_prefilt[:,0:3],axis=0))
 
@@ -89,4 +92,4 @@ if __name__ == '__main__':
     plt.show()
 
     # save result
-    np.savetxt('data_postfilter/typo_1.2A-8/occ_01.txt',traj_filt)
+    np.savetxt('data_postfilter/typo_1.2F-8/axial_04.txt',traj_filt)

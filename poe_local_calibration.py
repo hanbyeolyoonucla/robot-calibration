@@ -1,4 +1,4 @@
-from spatialmath import SE3, SO3
+from spatialmath import SE3, SO3, base
 import numpy as np
 from math import pi
 from scipy.linalg import expm, logm
@@ -52,7 +52,7 @@ def forward_kinematics(T_0, s_local, qs):
 if __name__ == '__main__':
 
     # calibration data [q1 q2 ... q6 x y z]
-    # data_cal = np.loadtxt('data_calibration/Cali_Points_Nornimal76_plus_Normal50.csv', delimiter=',')
+    # data_cal = np.loadtxt('data_calibration/Cali_Points_Normal68.csv', delimiter=',')
     data1 = np.loadtxt('data_calibration/cal_data/uniform_dist_data_0deg_160cube_Output.csv', delimiter=',')
     data2 = np.loadtxt('data_calibration/cal_data/norm_dist_data_0deg_80cube_Output.csv', delimiter=',')
     data3 = np.loadtxt('data_calibration/cal_data/norm_dist_data_0deg_160cube_Output.csv', delimiter=',')
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     data6 = np.loadtxt('data_calibration/cal_data/norm_dist_data_n90_80cube_Output.csv', delimiter=',')
     data7 = np.loadtxt('data_calibration/cal_data/norm_dist_data_n90_160cube_Output.csv', delimiter=',')
     data_cal = np.concatenate((data1,data2,data3,data4,data5,data6,data7),axis=0)
-    # data_cal = data7
+    # data_cal = data2
     data_cal[:, 6:9] = data_cal[:, 6:9] * 1000  # m to mm
     data_cal[:, :6] = data_cal[:, :6] * pi / 180  # degree to rad
 
@@ -112,7 +112,7 @@ if __name__ == '__main__':
     # for j in range(100):
     while x_norm > 1e-12:
         Pe_nominal = np.empty((0, 3))
-        K = np.empty((0, 6 * 6 ))
+        K = np.empty((0, 6 * 6 + 6))
         for i in range(data_cal.shape[0]):
             # nominal FK
             T_nominal = forward_kinematics(Tc_0, s_local, data_cal[i, :6])
@@ -121,7 +121,7 @@ if __name__ == '__main__':
             # identification matrix A and K
             A = id_jacobian(Tc_0, s_local, data_cal[i, :6])
             K_PI = np.concatenate((-skew(T_nominal.t), np.eye(3)), axis=1)
-            K_i = np.matmul(K_PI, A[:,:6*6])
+            K_i = np.matmul(K_PI, A[:,:6*6+6])
             K = np.concatenate((K, K_i), axis=0)
         Pe_actual = data_cal[:, 6:9]
         z = Pe_actual - Pe_nominal
