@@ -112,7 +112,7 @@ if __name__ == '__main__':
     # for j in range(100):
     while x_norm > 1e-12:
         Pe_nominal = np.empty((0, 3))
-        K = np.empty((0, 6 * 6 + 6))
+        K = np.empty((0, 6 * 6))
         for i in range(data_cal.shape[0]):
             # nominal FK
             T_nominal = forward_kinematics(Tc_0, s_local, data_cal[i, :6])
@@ -121,7 +121,7 @@ if __name__ == '__main__':
             # identification matrix A and K
             A = id_jacobian(Tc_0, s_local, data_cal[i, :6])
             K_PI = np.concatenate((-skew(T_nominal.t), np.eye(3)), axis=1)
-            K_i = np.matmul(K_PI, A[:,:6*6+6])
+            K_i = np.matmul(K_PI, A[:,:6*6])
             K = np.concatenate((K, K_i), axis=0)
         Pe_actual = data_cal[:, 6:9]
         z = Pe_actual - Pe_nominal
@@ -149,8 +149,8 @@ if __name__ == '__main__':
         print(Tc_0[i])
 
     # save result
-    np.savetxt('result_calibration/poe_local_calib.txt', np.array(Tc_0).reshape((-1, 4)))
-    np.savetxt('result_calibration/poe_local_nominal.txt', np.array(T_0).reshape((-1, 4)))
+    np.savetxt('result_calibration/poe_local_calib.csv', np.array(Tc_0).reshape((-1, 4)), delimiter=',')
+    np.savetxt('result_calibration/poe_local_nominal.csv', np.array(T_0).reshape((-1, 4)), delimiter=',')
 
     # validation
     Pe = np.empty((0,3))
