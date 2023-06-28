@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     P_cal, joints_cal = generate(nrobot, mu, sigma, box_l, angle, N, M)
 
-    np.savetxt('cal_points/test.txt', joints_cal)
+    # np.savetxt('cal_points/test.txt', joints_cal)
 
     # plot joint distribution
     fig, axs = plt.subplots(2, 3)

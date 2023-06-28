@@ -52,28 +52,17 @@ def forward_kinematics(T_0, s_local, qs):
 if __name__ == '__main__':
 
     # calibration data [q1 q2 ... q6 x y z]
-    # data_cal = np.loadtxt('data_calibration/Cali_Points_Normal68.csv', delimiter=',')
-    data1 = np.loadtxt('data_calibration/cal_data/uniform_dist_data_0deg_160cube_Output.csv', delimiter=',')
-    data2 = np.loadtxt('data_calibration/cal_data/norm_dist_data_0deg_80cube_Output.csv', delimiter=',')
-    data3 = np.loadtxt('data_calibration/cal_data/norm_dist_data_0deg_160cube_Output.csv', delimiter=',')
-    data4 = np.loadtxt('data_calibration/cal_data/norm_dist_data_90deg_80cube_Output.csv', delimiter=',')
-    data5 = np.loadtxt('data_calibration/cal_data/norm_dist_data_90deg_160cube_Output.csv', delimiter=',')
-    data6 = np.loadtxt('data_calibration/cal_data/norm_dist_data_n90_80cube_Output.csv', delimiter=',')
-    data7 = np.loadtxt('data_calibration/cal_data/norm_dist_data_n90_160cube_Output.csv', delimiter=',')
-    data_cal = np.concatenate((data1,data2,data3,data4,data5,data6,data7),axis=0)
+    data1 = np.loadtxt('data_calibration/CAL00004_Right_Large160_Output.csv', delimiter=',')
+    data2 = np.loadtxt('data_calibration/CAL00004_Right_Small80_Output.csv', delimiter=',')
+    # data1 = np.loadtxt('data_calibration/CAL00005_Left_Large160_Output.csv', delimiter=',')
+    # data2 = np.loadtxt('data_calibration/CAL00005_Left_Small80_Output.csv', delimiter=',')
+    data_cal = np.concatenate((data1[:-60,:],data2[:-60,:]),axis=0)
     # data_cal = data2
     data_cal[:, 6:9] = data_cal[:, 6:9] * 1000  # m to mm
     data_cal[:, :6] = data_cal[:, :6] * pi / 180  # degree to rad
 
     # validation data [q1 q2 ... q6 x y z]
-    # data_val = np.loadtxt('data_calibration/Test_Points_Normal.csv', delimiter=',')
-    data_val = np.loadtxt('data_calibration/val_data/uniform_dist_data_0deg_160cube_Output.csv', delimiter=',')
-    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_0deg_80cube_Output.csv', delimiter=',')
-    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_0deg_160cube_Output.csv', delimiter=',')
-    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_90deg_80cube_Output.csv', delimiter=',')
-    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_90deg_160cube_Output.csv', delimiter=',')
-    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_n90_80cube_Output.csv', delimiter=',')
-    # data_val = np.loadtxt('data_calibration/val_data/norm_dist_data_n90_160cube_Output.csv', delimiter=',')
+    data_val = np.concatenate((data1[-60:,:],data2[-60:,:]),axis=0)
     data_val[:, 6:9] = data_val[:, 6:9] * 1000  # m to mm
     data_val[:, :6] = data_val[:, :6] * pi / 180  # degree to rad
 
@@ -112,7 +101,7 @@ if __name__ == '__main__':
     # for j in range(100):
     while x_norm > 1e-12:
         Pe_nominal = np.empty((0, 3))
-        K = np.empty((0, 6 * 6))
+        K = np.empty((0, 6 * 5))  # 230626 fix base poe
         for i in range(data_cal.shape[0]):
             # nominal FK
             T_nominal = forward_kinematics(Tc_0, s_local, data_cal[i, :6])
@@ -121,7 +110,7 @@ if __name__ == '__main__':
             # identification matrix A and K
             A = id_jacobian(Tc_0, s_local, data_cal[i, :6])
             K_PI = np.concatenate((-skew(T_nominal.t), np.eye(3)), axis=1)
-            K_i = np.matmul(K_PI, A[:,:6*6])
+            K_i = np.matmul(K_PI, A[:,6:6*6]) # 230626 fix base poe
             K = np.concatenate((K, K_i), axis=0)
         Pe_actual = data_cal[:, 6:9]
         z = Pe_actual - Pe_nominal
@@ -134,7 +123,7 @@ if __name__ == '__main__':
         del_p = x.reshape((-1, 6))
         for idx, del_p_i in enumerate(del_p):
             screw = np.append(del_p_i[3:6],del_p_i[:3])
-            Tc_0[idx] = Tc_0[idx] * SE3.Exp(screw)
+            Tc_0[idx+1] = Tc_0[idx+1] * SE3.Exp(screw)  # 230626 fix base poe
 
         # calibration evaluation
         itr += 1
@@ -149,8 +138,8 @@ if __name__ == '__main__':
         print(Tc_0[i])
 
     # save result
-    np.savetxt('result_calibration/poe_local_calib.csv', np.array(Tc_0).reshape((-1, 4)), delimiter=',')
-    np.savetxt('result_calibration/poe_local_nominal.csv', np.array(T_0).reshape((-1, 4)), delimiter=',')
+    np.savetxt('result_calibration/poe_local_calib.csv', np.array(Tc_0).reshape((-1, 4)), delimiter=',', fmt='%.18f')
+    np.savetxt('result_calibration/poe_local_nominal.csv', np.array(T_0).reshape((-1, 4)), delimiter=',', fmt='%.18f')
 
     # validation
     Pe = np.empty((0,3))

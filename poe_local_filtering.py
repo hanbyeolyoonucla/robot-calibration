@@ -1,8 +1,9 @@
 from spatialmath import SE3, SO3, base
 import numpy as np
+import pandas as pd
 from math import pi
 import matplotlib.pyplot as plt
-from scipy.linalg import expm, logm
+import argparse
 
 
 def skew(x):
@@ -51,16 +52,78 @@ def forward_kinematics(T_0, s_local, qs):
     return T
 
 
+def check_joint_limit(q_check):
+    q_ll = np.array([-175, -70, -135, -170, -115, -180])
+    q_ul = np.array([175, 90, 70, 170, 115, 360])
+    return np.all(np.array([q_check < q_ul, q_check > q_ll]))
+
+
+def ecat_format(traj_filt, TCP):
+    # trajectory command info: 3 = MoveLine
+    meca_id = 3 * np.ones(traj_filt.shape[0], dtype=np.uintp)
+    check_pt = 1 * np.ones(traj_filt.shape[0], dtype=np.uintp)
+    file_ecat = pd.DataFrame(traj_filt)
+    file_ecat.insert(0, 'id', meca_id.copy().tolist())
+    file_ecat.insert(1, 'check', check_pt.copy().tolist())
+    file_ecat.columns = pd.RangeIndex(file_ecat.columns.size)
+
+    # Header: setTRF, setWRF, id info
+    settrf = np.array([13, 0] + TCP.copy().tolist(), dtype=object)
+    setwrf = [14, 0, 0, 0, 0, 0, 0, 0]
+    id_config = ['123456ABCDER', 'DC2300', '', '', '', '', '', '']
+    file_ecat = pd.concat([pd.DataFrame(settrf).transpose(), file_ecat.loc[:]]).reset_index(drop=True)
+    file_ecat = pd.concat([pd.DataFrame(setwrf).transpose(), file_ecat.loc[:]]).reset_index(drop=True)
+    file_ecat = pd.concat([pd.DataFrame(id_config).transpose(), file_ecat.loc[:]]).reset_index(drop=True)
+
+    return file_ecat
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
 
-    # load pre-filtered trajectory
-    traj_prefilt = np.loadtxt('data_prefilter/unfiltered_test_points_poe.txt')
-    # traj_prefilt = np.loadtxt('data_prefilter/unfiltered_cut_path/Unfiltered_occ_01.txt')
+    ###################################
+    # ARGUMENTS FOR FILTERING PROCESS #
+    ###################################
 
+    # arg parser
+    argParser = argparse.ArgumentParser()
+    argParser.add_argument("-i", "--input_fname", help="input file name: ex) Unfiltered_axial_01.txt")
+    argParser.add_argument("-o", "--output_fname", help="output file name: ex) axial_01.txt")
+    argParser.add_argument("-oe", "--output_eCAT_fname", help="output eCAT file name: ex) cutpath_a1.txt")
+    argParser.add_argument("-c", "--calibration", help="calibration model: ex) CAL00001.csv")
+    argParser.add_argument("-t", "--tcp", help="tcp model: ex) TCP0001.csv")
+    argParser.add_argument("-q", "--q_init", help="initial joint angle: ex) 0,0,0,0,0,0")
+    args = argParser.parse_args()
+
+    # unfiltered cut path file name : Unfiltered_occ_01.txt / Unfiltered_axial_01.txt
+    fname_pre_filter = "".join(args.input_fname) if args.input_fname else 'Unfiltered_axial_04.txt'
+
+    # filtered cut path file name : occ_01.txt / axial_01.txt
+    fname_post_filter = "".join(args.output_fname) if args.output_fname else 'axial_04.txt'
+
+    # filtered cut path file name [EtherCAT] : cutpath_o1.csv / cutpath_a1.csv
+    fname_post_filter_ecat = "".join(args.output_eCAT_fname) if args.output_eCAT_fname else 'cutpath_a4.csv'
+
+    # calibrated DH: alpha a theta d
+    cal = "".join(args.calibration) if args.calibration else 'CAL00006.csv'
+
+    # tool center point
+    tcp = "".join(args.tcp) if args.tcp else 'TCP00008.csv'
+
+    # q_init forward kinematics
+    q_init = np.fromstring(args.q_init, count=6, sep=',') * pi / 180 if args.q_init else np.array(
+        [11.263707, -1.7625, 32.841983, -96.902586, -71.128966, 98.931034]) * pi / 180
+
+    ##########################
+    # MAIN FILTERING PROCESS #
+    ##########################
+
+    # load pre-filtered trajectory
+    traj_prefilt = np.loadtxt('data_prefilter/unfiltered_cut_path/%s' % fname_pre_filter)
 
     # calibrated / nominal POE
-    Tc_array = np.loadtxt('result_calibration/poe_local_calib.csv', delimiter=',')
+    Tc_array = np.loadtxt('result_calibration/data/%s' % cal, delimiter=',')
+    # Tc_array = np.loadtxt('result_calibration/poe_local_calib.csv', delimiter=',')
     Tn_array = np.loadtxt('result_calibration/poe_local_nominal.csv', delimiter=',')
     Tc = []
     Tn = []
@@ -69,36 +132,27 @@ if __name__ == '__main__':
         Tn.append(SE3(Tn_array[4 * idx:4 * idx + 4, :]))
 
     # tool information
-    TCP = np.array([-5.986996235,	-0.1226059,	145.9501981,	174.8557519,	85.66877675,	4.928643451])  # Hecate TCP
+    TCP = np.loadtxt('data_tcp_calibration/data/%s' % tcp, delimiter=',')
     T_tool = SE3.Trans(TCP[0:3]) * SE3.RPY(np.flip(TCP[3:6]), unit='deg', order='xyz')
     # T_tool = SE3()
-    # T_tool = SE3(base.trnorm(np.array([[0.07692182,	-0.00844348, 0.99700137, -6.00748941],
-    #                                    [0.00279028, -0.9999584, -0.0086838, -0.16843419],
-    #                                    [0.99703322, 0.00344989, -0.07689506, 146.0180594],
-    #                                    [0, 0, 0, 1]])))
-
     Tc.append(T_tool)
     Tn.append(T_tool)
 
     # nominal local screws for revolute joints [v w]
     s_local = np.array([0, 0, 0, 0, 0, 1])
-
-    # space screw
     s_space = space_screw(Tc, s_local)
 
     # newton-ralphson inverse kinematics
     eps_w = 1e-7
     eps_v = 1e-7
     step = 0.5
-    q_init = np.array([8.527759,38.374914,3.170948,-99.838448,-97.556897,76.537931]) * pi / 180
+    debug = forward_kinematics(Tc, s_local, q_init)
+    # np.savetxt('data_postfilter/debug_fk_poe.txt', debug, fmt='%.18f')
 
-    debug = forward_kinematics(Tc,s_local,q_init)
-
-    # q = q_init
     q_ik = []
     traj_filt = []
     for idx, xyzrpy in enumerate(traj_prefilt):
-        print('\n\n iteration: ', idx)
+        print('iteration: ', idx)
         Tsd = SE3.Rt(SO3.RPY(np.flip(xyzrpy[3:6]), unit='deg', order='xyz'), xyzrpy[0:3])
         q = q_init
         # iteration
@@ -107,9 +161,6 @@ if __name__ == '__main__':
         while w_norm > eps_w and v_norm > eps_v:
             Tsb = SE3(forward_kinematics(Tc, s_local, q))
             errT = Tsb.inv() * Tsd
-            print('check ishom: ', base.ishom(np.array(errT), check=True, tol=100))
-            print('check err mat: \n', errT)
-            # Vb_mat = errT.log()
             Vb_mat = base.trlog(errT.data[0], check=False)
             wb = np.array([Vb_mat[2, 1], Vb_mat[0, 2], Vb_mat[1, 0]])
             vb = Vb_mat[:3, 3]
@@ -119,30 +170,36 @@ if __name__ == '__main__':
             Js = space_jacobian(s_space, q)
             Jb = np.matmul(Tsb.inv().Ad(), Js)
             q = q + step * np.matmul(np.linalg.pinv(Jb), Vb)
-        q_ik.append(q)
-        T_filt = SE3(forward_kinematics(Tn, s_local, q))
-        traj_filt.append(np.append(T_filt.t, np.flip(T_filt.rpy(unit='deg', order='xyz'))))
+        if ~check_joint_limit(q):
+            print('Exceed Joint Limit!')
+            break
+        else:
+            q_ik.append(q)
+            T_filt = SE3(forward_kinematics(Tn, s_local, q))
+            traj_filt.append(np.append(T_filt.t, np.flip(T_filt.rpy(unit='deg', order='xyz'))))
     q_ik = np.array(q_ik)
     traj_filt = np.array(traj_filt)
 
-    # check deviation due to filtering and result
-    # print(np.mean(traj_filt[:, 0:3] - traj_prefilt[:, 0:3], axis=0))
-    print(traj_filt[:,:3])
-    print(traj_filt[:,3:])
-    print(q_ik)
+    # EtherCAT format
+    file_ecat = ecat_format(traj_filt, TCP)
+
+    # double check joint limit by print
+    # print(q_ik * 180 / pi)
 
     # plot result
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     ax.set_box_aspect((1, 1, 1))
-    ax.plot(traj_prefilt[:, 0], traj_prefilt[:, 1], traj_prefilt[:, 2], marker='.')
-    ax.plot(traj_filt[:, 0], traj_filt[:, 1], traj_filt[:, 2], marker='.')
+    ax.plot(traj_prefilt[:, 0], traj_prefilt[:, 1], traj_prefilt[:, 2], marker='.', label='pre_filtered')
+    ax.plot(traj_filt[:, 0], traj_filt[:, 1], traj_filt[:, 2], marker='.', label='filtered')
+    ax.legend()
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
     plt.show()
 
     # save result
-    np.savetxt('data_postfilter/filtered_test_points_poe.txt', traj_filt)
-    # np.savetxt('data_postfilter/filtered_cut_path/occ_01.txt', traj_filt)
+    np.savetxt('data_postfilter/filtered_cut_path/%s' % fname_post_filter, traj_filt, fmt='%.18f')
 
+    # save result as EtherCAT format
+    file_ecat.to_csv('data_postfilter/filtered_cut_path_ecat/%s' % fname_post_filter_ecat, header=False, index=False)

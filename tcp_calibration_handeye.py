@@ -27,7 +27,7 @@ if __name__ == '__main__':
     T_tip_tb = T_tip_tb.inv()
 
     # [POE] calibration result local T 7*4 x 4
-    Tc_array = np.loadtxt('result_calibration/poe_local_calib.txt')
+    Tc_array = np.loadtxt('result_calibration/poe_local_calib.csv',delimiter=',')
     Tc = []
     for idx in range(6):
         Tc.append(SE3(Tc_array[4 * idx:4 * idx + 4, :]))
@@ -50,16 +50,16 @@ if __name__ == '__main__':
 
     # [POE] calibrate TCP
     R_tcp, t_tcp = cv2.calibrateHandEye(T_rb_flange.R, T_rb_flange.t, T_tip_tb.R, T_tip_tb.t,
-                                        method=cv2.CALIB_HAND_EYE_HORAUD)  #cv2.CALIB_HAND_EYE_TSAI cv2.CALIB_HAND_EYE_PARK
-    T_tcp_POE = SE3.Rt(R_tcp, t_tcp)
+                                        method=cv2.CALIB_HAND_EYE_PARK)  #cv2.CALIB_HAND_EYE_TSAI cv2.CALIB_HAND_EYE_PARK CALIB_HAND_EYE_HORAUD
+    T_tcp_POE = SE3.Rt(base.trnorm(R_tcp), t_tcp)
     T_tcp_POE_XYZRPW = np.append(T_tcp_POE.t, np.flip(T_tcp_POE.rpy(unit='deg',order='xyz')))
     print(T_tcp_POE)
     print(T_tcp_POE_XYZRPW)
 
     # [DH] calibrate TCP
     R_tcp, t_tcp = cv2.calibrateHandEye(T_rb_flange_DH.R, T_rb_flange_DH.t, T_tip_tb.R, T_tip_tb.t,
-                                        method=cv2.CALIB_HAND_EYE_HORAUD)
-    T_tcp_DH = SE3.Rt(R_tcp, t_tcp)
+                                        method=cv2.CALIB_HAND_EYE_PARK)
+    T_tcp_DH = SE3.Rt(base.trnorm(R_tcp), t_tcp)
     T_tcp_DH_XYZRPW = np.append(T_tcp_DH.t, np.flip(T_tcp_DH.rpy(unit='deg',order='xyz')))
     print(T_tcp_DH)
     print(T_tcp_DH_XYZRPW)
