@@ -74,13 +74,13 @@ if __name__ == '__main__':
     fname_post_filter_ecat = "".join(args.output_eCAT_fname) if args.output_eCAT_fname else 'cutpath_a4.csv'
 
     # calibrated DH: alpha a theta d
-    cal = "".join(args.calibration) if args.calibration else 'CAL00002.csv'
+    cal = "".join(args.calibration) if args.calibration else 'CAL00004.csv'
 
     # tool center point
     tcp = "".join(args.tcp) if args.tcp else 'TCP00008.csv'
 
     # q_init forward kinematics
-    q_init = np.fromstring(args.q_init, count=6, sep=',') * pi / 180 if args.q_init else np.array([11.263707, -1.7625, 32.841983, -96.902586, -71.128966, 98.931034]) * pi / 180
+    q_init = np.fromstring(args.q_init, count=6, sep=',') * pi / 180 if args.q_init else np.array([-106.65362,48.68948,-34.35517,-94.12345,-85.86414,70.94483]) * pi / 180
 
     ##########################
     # MAIN FILTERING PROCESS #
@@ -93,6 +93,7 @@ if __name__ == '__main__':
     # robot base and tool information
     T_base = SE3()
     T_tool = SE3.Trans(TCP[0:3]) * SE3.RPY(np.flip(TCP[3:6]), unit='deg', order='xyz')
+    # T_tool = SE3()
 
     # load pre-filtered trajectory
     traj_prefilt = np.loadtxt('data_prefilter/unfiltered_cut_path/%s' % fname_pre_filter)
@@ -100,7 +101,7 @@ if __name__ == '__main__':
     # debug forward kinematics for initial joint angles
     crobot = myrobot.SerialLink(mdh=calibrated, T_base=T_base, T_tool=T_tool)
     debug = crobot.fkine(q_init)
-    # np.savetxt('data_postfilter/debug_fk_dh.txt', debug, fmt='%.18f')
+    np.savetxt('data_postfilter/debug_fk_dh.txt', debug, fmt='%.18f')
 
     # nominal DH: alpha a theta d
     nominal = np.array([[0, 0, 0, 135],
