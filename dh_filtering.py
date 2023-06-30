@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import myrobot
 import pandas as pd
 import argparse
+from poe_local_filtering import ecat_format
 
 
 def filter(nmdh, cmdh, T_base, T_tool, trajectory, q0):
@@ -45,27 +46,6 @@ def filter(nmdh, cmdh, T_base, T_tool, trajectory, q0):
         traj_filt.append(traj)
 
     return np.array(T_filt), np.array(traj_filt), np.array(q_filt), np.array(success_filt)
-
-
-def ecat_format(traj_filt, TCP):
-    # trajectory command info: 3 = MoveLine
-    meca_id = 3 * np.ones(traj_filt.shape[0], dtype=np.uintp)
-    check_pt = 1 * np.ones(traj_filt.shape[0], dtype=np.uintp)
-    file_ecat = pd.DataFrame(traj_filt)
-    file_ecat.insert(0, 'id', meca_id.copy().tolist())
-    file_ecat.insert(1, 'check', check_pt.copy().tolist())
-    file_ecat.columns = pd.RangeIndex(file_ecat.columns.size)
-
-    # Header: setTRF, setWRF, id info
-    settrf = np.array([13, 0] + TCP.copy().tolist(), dtype=object)
-    setwrf = [14, 0, 0, 0, 0, 0, 0, 0]
-    id_config = ['123456ABCDER', 'DC2300', '', '', '', '', '', '']
-    file_ecat = pd.concat([pd.DataFrame(settrf).transpose(), file_ecat.loc[:]]).reset_index(drop=True)
-    file_ecat = pd.concat([pd.DataFrame(setwrf).transpose(), file_ecat.loc[:]]).reset_index(drop=True)
-    file_ecat = pd.concat([pd.DataFrame(id_config).transpose(), file_ecat.loc[:]]).reset_index(drop=True)
-
-    return file_ecat
-
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
