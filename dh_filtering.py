@@ -14,7 +14,7 @@ import argparse
 from poe_local_filtering import ecat_format
 
 
-def filter(nmdh, cmdh, T_base, T_tool, trajectory, q0):
+def dh_filter(nmdh, cmdh, T_base, T_tool, trajectory, q0):
     # define robot
     nrobot = myrobot.SerialLink(mdh=nmdh, T_base=SE3(T_base), T_tool=SE3(T_tool))
     crobot = myrobot.SerialLink(mdh=cmdh, T_base=SE3(T_base), T_tool=SE3(T_tool))
@@ -47,9 +47,9 @@ def filter(nmdh, cmdh, T_base, T_tool, trajectory, q0):
 
     return np.array(T_filt), np.array(traj_filt), np.array(q_filt), np.array(success_filt)
 
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-
     ###################################
     # ARGUMENTS FOR FILTERING PROCESS #
     ###################################
@@ -80,7 +80,8 @@ if __name__ == '__main__':
     tcp = "".join(args.tcp) if args.tcp else 'TCP00008.csv'
 
     # q_init forward kinematics
-    q_init = np.fromstring(args.q_init, count=6, sep=',') * pi / 180 if args.q_init else np.array([-106.65362,48.68948,-34.35517,-94.12345,-85.86414,70.94483]) * pi / 180
+    q_init = np.fromstring(args.q_init, count=6, sep=',') * pi / 180 if args.q_init else np.array(
+        [-106.65362, 48.68948, -34.35517, -94.12345, -85.86414, 70.94483]) * pi / 180
 
     ##########################
     # MAIN FILTERING PROCESS #
@@ -96,23 +97,24 @@ if __name__ == '__main__':
     # T_tool = SE3()
 
     # load pre-filtered trajectory
-    traj_prefilt = np.loadtxt('data_prefilter/unfiltered_cut_path/%s' % fname_pre_filter)
+    traj_prefilt = np.loadtxt('data_filtering/unfiltered_cut_path/%s' % fname_pre_filter)
 
     # debug forward kinematics for initial joint angles
     crobot = myrobot.SerialLink(mdh=calibrated, T_base=T_base, T_tool=T_tool)
     debug = crobot.fkine(q_init)
-    np.savetxt('data_postfilter/debug_fk_dh.txt', debug, fmt='%.18f')
+    np.savetxt('data_filtering/debug_fk_dh.txt', debug, fmt='%.18f')
 
     # nominal DH: alpha a theta d
-    nominal = np.array([[0, 0, 0, 135],
-                        [-pi / 2, 0, -pi / 2, 0],
-                        [0, 135, 0, 0],
-                        [-pi / 2, 38, 0, 120],
-                        [pi / 2, 0, 0, 0],
-                        [-pi / 2, 0, pi, 70]])
+    # nominal = np.array([[0, 0, 0, 135],
+    #                     [-pi / 2, 0, -pi / 2, 0],
+    #                     [0, 135, 0, 0],
+    #                     [-pi / 2, 38, 0, 120],
+    #                     [pi / 2, 0, 0, 0],
+    #                     [-pi / 2, 0, pi, 70]])
+    nominal = np.loadtxt('result_calibration/dh_nominal.csv', delimiter=',')
 
     # filter trajectory
-    T_filt, traj_filt, q_filt, success = filter(nmdh=nominal, cmdh=calibrated, T_base=T_base, T_tool=T_tool,
+    T_filt, traj_filt, q_filt, success = dh_filter(nmdh=nominal, cmdh=calibrated, T_base=T_base, T_tool=T_tool,
                                                 trajectory=traj_prefilt, q0=q_init)
 
     # EtherCAT format
@@ -134,7 +136,7 @@ if __name__ == '__main__':
     plt.show()
 
     # save result
-    np.savetxt('data_postfilter/filtered_cut_path/%s' % fname_post_filter, traj_filt, fmt='%.18f')
+    np.savetxt('data_filtering/filtered_cut_path/%s' % fname_post_filter, traj_filt, fmt='%.18f')
 
     # save result as EtherCAT format
-    file_ecat.to_csv('data_postfilter/filtered_cut_path_ecat/%s' % fname_post_filter_ecat, header=False, index=False)
+    file_ecat.to_csv('data_filtering/filtered_cut_path_ecat/%s' % fname_post_filter_ecat, header=False, index=False)

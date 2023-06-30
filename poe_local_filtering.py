@@ -43,7 +43,7 @@ def space_jacobian(s_space, q):
     return np.array(Js).transpose()
 
 
-def forward_kinematics(T_0, s_local, qs):
+def poe_forward_kinematics(T_0, s_local, qs):
     T = SE3()
     for idx, q in enumerate(qs):
         T_i = T_0[idx] * SE3.Exp(s_local * q)
@@ -56,7 +56,6 @@ def check_joint_limit(q_check):
     q_ll = np.array([-175, -70, -135, -170, -115, -180])
     q_ul = np.array([175, 90, 70, 170, 115, 360])
     return np.all(np.array([q_check < q_ul, q_check > q_ll]))
-
 
 def ecat_format(traj_filt, TCP):
     # trajectory command info: 3 = MoveLine
@@ -119,7 +118,7 @@ if __name__ == '__main__':
     ##########################
 
     # load pre-filtered trajectory
-    traj_prefilt = np.loadtxt('data_prefilter/unfiltered_cut_path/%s' % fname_pre_filter)
+    traj_prefilt = np.loadtxt('data_filtering/unfiltered_cut_path/%s' % fname_pre_filter)
 
     # calibrated / nominal POE
     Tc_array = np.loadtxt('result_calibration/data/%s' % cal, delimiter=',')
@@ -146,7 +145,7 @@ if __name__ == '__main__':
     eps_w = 1e-7
     eps_v = 1e-7
     step = 0.5
-    debug = forward_kinematics(Tc, s_local, q_init)
+    debug = poe_forward_kinematics(Tc, s_local, q_init)
     # np.savetxt('data_postfilter/debug_fk_poe.txt', debug, fmt='%.18f')
 
     q_ik = []
@@ -159,7 +158,7 @@ if __name__ == '__main__':
         w_norm = 1
         v_norm = 1
         while w_norm > eps_w and v_norm > eps_v:
-            Tsb = SE3(forward_kinematics(Tc, s_local, q))
+            Tsb = SE3(poe_forward_kinematics(Tc, s_local, q))
             errT = Tsb.inv() * Tsd
             Vb_mat = base.trlog(errT.data[0], check=False)
             wb = np.array([Vb_mat[2, 1], Vb_mat[0, 2], Vb_mat[1, 0]])
@@ -175,7 +174,7 @@ if __name__ == '__main__':
             break
         else:
             q_ik.append(q)
-            T_filt = SE3(forward_kinematics(Tn, s_local, q))
+            T_filt = SE3(poe_forward_kinematics(Tn, s_local, q))
             traj_filt.append(np.append(T_filt.t, np.flip(T_filt.rpy(unit='deg', order='xyz'))))
     q_ik = np.array(q_ik)
     traj_filt = np.array(traj_filt)
@@ -199,7 +198,7 @@ if __name__ == '__main__':
     plt.show()
 
     # save result
-    np.savetxt('data_postfilter/filtered_cut_path/%s' % fname_post_filter, traj_filt, fmt='%.18f')
+    np.savetxt('data_filtering/filtered_cut_path/%s' % fname_post_filter, traj_filt, fmt='%.18f')
 
     # save result as EtherCAT format
-    file_ecat.to_csv('data_postfilter/filtered_cut_path_ecat/%s' % fname_post_filter_ecat, header=False, index=False)
+    file_ecat.to_csv('data_filtering/filtered_cut_path_ecat/%s' % fname_post_filter_ecat, header=False, index=False)
