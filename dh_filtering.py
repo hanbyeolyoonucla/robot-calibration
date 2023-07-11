@@ -14,13 +14,17 @@ import argparse
 from poe_local_filtering import ecat_format
 
 
-def dh_filter(nmdh, cmdh, T_base, T_tool, trajectory, q0):
+def dh_filter(nmdh, cmdh, TCP, trajectory, q_init):
     # define robot
-    nrobot = myrobot.SerialLink(mdh=nmdh, T_base=SE3(T_base), T_tool=SE3(T_tool))
-    crobot = myrobot.SerialLink(mdh=cmdh, T_base=SE3(T_base), T_tool=SE3(T_tool))
+    T_tool = SE3.Trans(TCP[0:3]) * SE3.RPY(np.flip(TCP[3:6]), unit='deg', order='xyz')
+    nrobot = myrobot.SerialLink(mdh=nmdh, T_tool=T_tool)
+    crobot = myrobot.SerialLink(mdh=cmdh, T_tool=T_tool)
+
+    # debug forward kinematics for initial joint angles
+    # debug = crobot.fkine(q_init)
+    # np.savetxt('data_filtering/debug_fk_dh.txt', debug, fmt='%.18f')
 
     # calibrated IK
-    q_init = q0
     T_filt = []
     traj_filt = []
     q_filt = []
@@ -31,7 +35,7 @@ def dh_filter(nmdh, cmdh, T_base, T_tool, trajectory, q0):
         sol = crobot.ik_lm_chan(Te, q0=q_init)
         q = sol[0]
         success = sol[1]
-        assert success != 0, 'IK does not exist!'
+        assert success != 0, 'IK does not exist! %d' % idx
 
         q_filt.append(q)
         success_filt.append(success)
@@ -65,10 +69,10 @@ if __name__ == '__main__':
     args = argParser.parse_args()
 
     # unfiltered cut path file name : Unfiltered_occ_01.txt / Unfiltered_axial_01.txt
-    fname_pre_filter = "".join(args.input_fname) if args.input_fname else 'Unfiltered_axial_04.txt'
+    fname_pre_filter = "".join(args.input_fname) if args.input_fname else 'Unfiltered_axial_01.txt'
 
     # filtered cut path file name : occ_01.txt / axial_01.txt
-    fname_post_filter = "".join(args.output_fname) if args.output_fname else 'axial_04.txt'
+    fname_post_filter = "".join(args.output_fname) if args.output_fname else 'axial_01.txt'
 
     # filtered cut path file name [EtherCAT] : cutpath_o1.csv / cutpath_a1.csv
     fname_post_filter_ecat = "".join(args.output_eCAT_fname) if args.output_eCAT_fname else 'cutpath_a4.csv'
@@ -77,11 +81,11 @@ if __name__ == '__main__':
     cal = "".join(args.calibration) if args.calibration else 'CAL00004.csv'
 
     # tool center point
-    tcp = "".join(args.tcp) if args.tcp else 'TCP00008.csv'
+    tcp = "".join(args.tcp) if args.tcp else 'TCP00013.csv'
 
     # q_init forward kinematics
     q_init = np.fromstring(args.q_init, count=6, sep=',') * pi / 180 if args.q_init else np.array(
-        [-106.65362, 48.68948, -34.35517, -94.12345, -85.86414, 70.94483]) * pi / 180
+        [-91.34998, 56.67183, 2.30965, -54.16851, -99.79115, 80.25414]) * pi / 180
 
     ##########################
     # MAIN FILTERING PROCESS #
@@ -99,29 +103,16 @@ if __name__ == '__main__':
     # load pre-filtered trajectory
     traj_prefilt = np.loadtxt('data_filtering/unfiltered_cut_path/%s' % fname_pre_filter)
 
-    # debug forward kinematics for initial joint angles
-    crobot = myrobot.SerialLink(mdh=calibrated, T_base=T_base, T_tool=T_tool)
-    debug = crobot.fkine(q_init)
-    np.savetxt('data_filtering/debug_fk_dh.txt', debug, fmt='%.18f')
-
     # nominal DH: alpha a theta d
-    # nominal = np.array([[0, 0, 0, 135],
-    #                     [-pi / 2, 0, -pi / 2, 0],
-    #                     [0, 135, 0, 0],
-    #                     [-pi / 2, 38, 0, 120],
-    #                     [pi / 2, 0, 0, 0],
-    #                     [-pi / 2, 0, pi, 70]])
     nominal = np.loadtxt('result_calibration/dh_nominal.csv', delimiter=',')
 
     # filter trajectory
-    T_filt, traj_filt, q_filt, success = dh_filter(nmdh=nominal, cmdh=calibrated, T_base=T_base, T_tool=T_tool,
-                                                trajectory=traj_prefilt, q0=q_init)
+    T_filt, traj_filt, q_filt, success = dh_filter(nmdh=nominal, cmdh=calibrated, TCP=TCP,
+                                                   trajectory=traj_prefilt, q_init=q_init)
 
     # EtherCAT format
     file_ecat = ecat_format(traj_filt, TCP)
 
-    # check joint angles
-    # print(q_filt * 180 / pi)
 
     # plot result
     fig = plt.figure()

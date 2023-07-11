@@ -52,17 +52,17 @@ def forward_kinematics(T_0, s_local, qs):
 if __name__ == '__main__':
 
     # calibration data [q1 q2 ... q6 x y z]
-    data1 = np.loadtxt('data_calibration/CAL00004_Right_Large160_Output.csv', delimiter=',')
-    data2 = np.loadtxt('data_calibration/CAL00004_Right_Small80_Output.csv', delimiter=',')
-    # data1 = np.loadtxt('data_calibration/CAL00005_Left_Large160_Output.csv', delimiter=',')
-    # data2 = np.loadtxt('data_calibration/CAL00005_Left_Small80_Output.csv', delimiter=',')
+    data11 = np.loadtxt('data_calibration/CAL00004_Right_Large160_Output.csv', delimiter=',')
+    data22 = np.loadtxt('data_calibration/CAL00004_Right_Small80_Output.csv', delimiter=',')
+    data1 = np.loadtxt('data_calibration/CAL00005_Left_Large160_Output.csv', delimiter=',')
+    data2 = np.loadtxt('data_calibration/CAL00005_Left_Small80_Output.csv', delimiter=',')
     data_cal = np.concatenate((data1[:-60,:],data2[:-60,:]),axis=0)
     # data_cal = data2
     data_cal[:, 6:9] = data_cal[:, 6:9] * 1000  # m to mm
     data_cal[:, :6] = data_cal[:, :6] * pi / 180  # degree to rad
 
     # validation data [q1 q2 ... q6 x y z]
-    data_val = np.concatenate((data1[-60:,:],data2[-60:,:]),axis=0)
+    data_val = np.concatenate((data11[-60:,:],data22[-60:,:]),axis=0)
     data_val[:, 6:9] = data_val[:, 6:9] * 1000  # m to mm
     data_val[:, :6] = data_val[:, :6] * pi / 180  # degree to rad
 
